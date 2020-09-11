@@ -1,0 +1,7 @@
+token.txt
+
+.idea/
+__pycache__/
+assets/*.png
+assets/*.jpg
+venv/
