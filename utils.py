@@ -1,8 +1,12 @@
 from telegram.ext import CommandHandler, ConversationHandler
 
 
-def respond(update, context, message):
+def send_message(update, context, message):
     context.bot.send_message(chat_id = update.effective_chat.id, text = message)
+
+
+def send_reply(update, context, message):
+    update.message.reply_text(message)
 
 
 def add_command(dispatcher, command, name):

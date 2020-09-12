@@ -48,12 +48,18 @@ class item_manager:
 
 
     def remove_file(self, filename):
-        del self.items[filename]
+        if filename in self.items:
+            del self.items[filename]
+            return True
+
+        return False
 
 
     def remove_name(self, server_name):
-        keys = [k for k, v in self.items if v[0] == server_name]
+        keys = [k for k, v in self.items.items() if v[0] == server_name]
         for k in keys: del self.items[k]
+
+        return len(keys) > 0
 
 
     def get_items(self):

@@ -22,7 +22,7 @@ def on_revolve(update, context):
         context.bot.setChatTitle(id, name)
         context.bot.setChatDescription(id, desc + '\n\nDiscord: https://discord.gg/jjaFNAN')
 
-    respond(update, context, "The king is dead, long live the king!")
+    send_message(update, context, "The king is dead, long live the king!")
 
 
 def on_list_images(update, context):
@@ -32,17 +32,26 @@ def on_list_images(update, context):
     ))
 
     names = "Khajiit has shitty memes if you have coin:\n\n" + names
-    respond(update, context, names)
+    send_message(update, context, names)
 
 
 def on_refresh(update, context):
     items.load()
-    respond(update, context, "List has been refreshed.")
+    send_reply(update, context, "List has been refreshed.")
 
 
-add_command(dispatcher, on_revolve,     'revolve')
-add_command(dispatcher, on_list_images, 'list'   )
-add_command(dispatcher, on_refresh,     'refresh')
+def on_del_entry(update, context):
+    if items.remove_name(update.message.text[len('/del_entry '):]):
+        send_reply(update, context, "That shit is gone bruh")
+        items.save()
+    else:
+        send_reply(update, context, "I don't have a fucking clue what that is")
+
+
+add_command(dispatcher, on_revolve,     'revolve'  )
+add_command(dispatcher, on_list_images, 'list'     )
+add_command(dispatcher, on_refresh,     'refresh'  )
+add_command(dispatcher, on_del_entry,   'del_entry')
 add_conversation(dispatcher, add_item.conversation_handler)
 
 items.load()
