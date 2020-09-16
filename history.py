@@ -45,4 +45,5 @@ def save_hist():
 def get_hist_items(chat_id):
     global history, hist_limit
 
-    return history[chat_id]
+    if chat_id not in history: return ""
+    else: return history[chat_id]
