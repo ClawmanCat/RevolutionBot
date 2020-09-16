@@ -1,5 +1,6 @@
 from telegram.ext import CommandHandler, ConversationHandler, MessageHandler, Filters
 
+from common import *
 from utils import *
 from items import *
 
@@ -8,7 +9,6 @@ import os.path as path
 
 
 NAME, DESC, FILE = range(3)
-asset_folder = './assets/'
 
 
 class conversation_state_storage:
