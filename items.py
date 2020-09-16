@@ -1,10 +1,10 @@
+from common import *
+
 import json
 import os
 import os.path as path
 import shutil
 import random
-
-asset_folder = './assets/'
 
 
 class item_manager:

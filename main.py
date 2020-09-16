@@ -1,8 +1,10 @@
 from telegram import InputFile, error
 from telegram.ext import Updater, ConversationHandler
 
+from common import *
 from utils import *
 from items import *
+from history import *
 import add_item
 
 import json
@@ -17,46 +19,21 @@ updater    = Updater(token = token, use_context = True)
 dispatcher = updater.dispatcher
 job_queue  = updater.job_queue
 jobs       = dict()
-history    = dict() # Server => Name[]
-hist_limit = 10
-
-
-def hist_allows(chat_id, name):
-    if chat_id not in history: return True
-    else: return name not in history[chat_id]
-
-def hist_insert(chat_id, name):
-    if chat_id not in history: history[chat_id] = []
-
-    history[chat_id].append(name)
-    if len(history[chat_id]) > hist_limit: history[chat_id] = history[chat_id][1:]
-
-def load_hist():
-    with open(path.join(asset_folder, 'history.json'), 'r') as handle:
-        history = json.load(hist)
-
-def save_hist():
 
 
 def do_revolve(chat_id):
-    global history, hist_limit
-
     bot = updater.bot
 
-    found_new = False
 
-    while not found_new:
+    file, (name, desc) = items.random_item()
+    while not hist_allows(chat_id, name):
         file, (name, desc) = items.random_item()
 
-        if name not in history:
-            history.append(name)
-            found_new = True
+    hist_insert(chat_id, name)
+    save_hist()
 
-            if len(history) > hist_limit:
-                history = history[1:]
 
     with open('./assets/' + file, 'rb') as f:
-
         try:
             bot.set_chat_photo(chat_id, InputFile(f, filename = name))
             bot.setChatTitle(chat_id, name)
@@ -167,14 +144,21 @@ def on_noauto(update, context):
     save_job_queue()
 
 
+def on_disabled(update, context):
+    hist_items = '\n'.join(get_hist_items(update.effective_chat.id))
+    send_message(update, context, "These nibbas won't show their face around here anytime soon:\n\n" + hist_items)
+
+
 add_command(dispatcher, on_revolve,     'revolve'  )
 add_command(dispatcher, on_list_images, 'list'     )
 add_command(dispatcher, on_refresh,     'refresh'  )
 add_command(dispatcher, on_del_entry,   'del_entry')
 add_command(dispatcher, on_auto,        'auto'     )
 add_command(dispatcher, on_noauto,      'no_auto'  )
+add_command(dispatcher, on_disabled,    'recent'   )
 add_conversation(dispatcher, add_item.conversation_handler)
 
 items.load()
 load_job_queue()
+load_hist()
 updater.start_polling()
