@@ -17,11 +17,43 @@ updater    = Updater(token = token, use_context = True)
 dispatcher = updater.dispatcher
 job_queue  = updater.job_queue
 jobs       = dict()
+history    = dict() # Server => Name[]
+hist_limit = 10
+
+
+def hist_allows(chat_id, name):
+    if chat_id not in history: return True
+    else: return name not in history[chat_id]
+
+def hist_insert(chat_id, name):
+    if chat_id not in history: history[chat_id] = []
+
+    history[chat_id].append(name)
+    if len(history[chat_id]) > hist_limit: history[chat_id] = history[chat_id][1:]
+
+def load_hist():
+    with open(path.join(asset_folder, 'history.json'), 'r') as handle:
+        history = json.load(hist)
+
+def save_hist():
 
 
 def do_revolve(chat_id):
+    global history, hist_limit
+
     bot = updater.bot
-    file, (name, desc) = items.random_item()
+
+    found_new = False
+
+    while not found_new:
+        file, (name, desc) = items.random_item()
+
+        if name not in history:
+            history.append(name)
+            found_new = True
+
+            if len(history) > hist_limit:
+                history = history[1:]
 
     with open('./assets/' + file, 'rb') as f:
 
@@ -130,7 +162,7 @@ def on_noauto(update, context):
         
         send_reply(update, context, "Aight, I'll shut up.")
     else:
-        send_reply(update, context, "I wasn't talking to begin with, you faggot.")
+        send_reply(update, context, "I wasn't talking to begin with, faggot.")
 
     save_job_queue()
 
