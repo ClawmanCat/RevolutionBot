@@ -1,3 +1,5 @@
+from math import ceil
+
 from telegram import InputFile, error
 from telegram.ext import Updater, ConversationHandler
 
@@ -9,6 +11,7 @@ import add_item
 
 import json
 import os
+import time
 import os.path as path
 
 
@@ -43,12 +46,15 @@ def do_revolve(chat_id):
             bot.send_message(chat_id = chat_id, text = "The flames of revolution shall burn another day.")
             return
 
+    jobs[chat_id][2] = time.time()
+    save_job_queue()
+
     bot.send_message(chat_id = chat_id, text = "The king is dead, long live the king!")
 
 
 def save_job_queue():
     job_data = dict(map(
-        lambda kv: (kv[0], kv[1][1]),
+        lambda kv: (kv[0], (kv[1][1], kv[1][2])),
         jobs.items()
     ))
 
@@ -65,16 +71,19 @@ def load_job_queue():
     with open(src, 'r') as handle:
         job_data = json.load(handle)
 
-        for chat_id, interval in job_data.items():
+        for chat_id, (interval, last_trigger) in job_data.items():
             chat_id = int(chat_id)
 
+            next_trigger = max(last_trigger + interval - time.time(), 0)
+            print('last = ' + str(last_trigger) + '\nnow  = ' + str(time.time()))
+            print('next = ' + str(next_trigger) + ', dt = ' + str(interval))
             job = job_queue.run_repeating(
                 lambda ctx: do_revolve(chat_id),
                 interval,
-                interval
+                next_trigger
             )
 
-            jobs[chat_id] = (job, interval)
+            jobs[chat_id] = [job, interval, next_trigger]
 
 
 def on_revolve(update, context):
@@ -107,13 +116,21 @@ def on_del_entry(update, context):
 def on_auto(update, context):
     chat_id  = update.effective_chat.id
     interval = 0
+    delta_start = 0
 
+    args = update.message.text.split(' ')[1:]
 
-    try:
-        interval = float(update.message.text[len('/auto '):])
-    except ValueError:
+    try: interval = float(args[0])
+    except (ValueError, IndexError):
         send_reply(update, context, "I need a number you fuckface.")
         return
+
+    try: delta_start = float(args[1])
+    except ValueError:
+        send_reply(update, context, "Don't give me a second argument if it's not gonna be a number, idiot.")
+        return
+    except IndexError:
+        delta_start = interval
 
 
     if chat_id in jobs: jobs[chat_id][0].schedule_removal()
@@ -121,11 +138,17 @@ def on_auto(update, context):
     job = job_queue.run_repeating(
         lambda ctx: do_revolve(chat_id),
         interval,
-        interval
+        delta_start
     )
 
-    jobs[chat_id] = (job, interval)
+    reverse_offset = interval
+    while reverse_offset < delta_start: reverse_offset += interval
+
+    jobs[chat_id] = [job, interval, time.time() - reverse_offset + delta_start]
+
     send_reply(update, context, "I'll annoy you every " + str(interval) + " seconds.")
+
+    print('store @ ' + str(time.time()) + ' with ds = ' + str(delta_start))
 
     save_job_queue()
 
