@@ -4,6 +4,7 @@ from telegram import InputFile, error
 from telegram.ext import Updater, ConversationHandler
 
 from common import *
+from notifier import send_revolve_notification
 from utils import *
 from items import *
 from history import *
@@ -25,13 +26,23 @@ job_queue  = updater.job_queue
 jobs       = dict()
 
 
-def do_revolve(chat_id):
+def do_revolve(chat_id, target = None):
     bot = updater.bot
 
-
-    file, (name, desc) = items.random_item()
-    while not hist_allows(chat_id, name):
+    file, name, desc = [None] * 3
+    if target is None:
         file, (name, desc) = items.random_item()
+        while not hist_allows(chat_id, name):
+            file, (name, desc) = items.random_item()
+
+    else:
+        for file, (name, desc) in items.get_items().items():
+            if name == target: break
+
+        if file is None:
+            bot.send_message(chat_id = chat_id, text = f'I don\'t know a {target} you fuckwad.')
+            return
+
 
     hist_insert(chat_id, name)
     save_hist()
@@ -46,6 +57,8 @@ def do_revolve(chat_id):
             # TG will throw BadRequest when the title / description are unchanged.
             bot.send_message(chat_id = chat_id, text = "The flames of revolution shall burn another day.")
             return
+        finally:
+            send_revolve_notification(chat_id, name)
 
 
     bot.send_message(chat_id = chat_id, text = "The king is dead, long live the king!")
@@ -90,6 +103,13 @@ def load_job_queue():
 
 def on_revolve(update, context):
     do_revolve(update.effective_chat.id)
+
+
+def on_revolve_to(update, context):
+    args = update.message.text.split(' ')[1:]
+
+    if len(args) >= 1: do_revolve(update.effective_chat.id, target = ''.join(args))
+    else: send_reply(update, context, "I need a name, you irredeemable idiot.")
 
 
 def on_list_images(update, context):
@@ -169,13 +189,14 @@ def on_disabled(update, context):
     send_message(update, context, "These nibbas won't show their face around here anytime soon:\n\n" + hist_items)
 
 
-add_command(dispatcher, on_revolve,     'revolve'  )
-add_command(dispatcher, on_list_images, 'list'     )
-add_command(dispatcher, on_refresh,     'refresh'  )
-add_command(dispatcher, on_del_entry,   'del_entry')
-add_command(dispatcher, on_auto,        'auto'     )
-add_command(dispatcher, on_noauto,      'no_auto'  )
-add_command(dispatcher, on_disabled,    'recent'   )
+add_command(dispatcher, on_revolve,     'revolve'   )
+add_command(dispatcher, on_revolve_to,  'revolve_to')
+add_command(dispatcher, on_list_images, 'list'      )
+add_command(dispatcher, on_refresh,     'refresh'   )
+add_command(dispatcher, on_del_entry,   'del_entry' )
+add_command(dispatcher, on_auto,        'auto'      )
+add_command(dispatcher, on_noauto,      'no_auto'   )
+add_command(dispatcher, on_disabled,    'recent'    )
 add_conversation(dispatcher, add_item.conversation_handler)
 
 items.load()
