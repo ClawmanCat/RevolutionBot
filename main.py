@@ -13,6 +13,7 @@ import json
 import os
 import time
 import os.path as path
+from math import floor, ceil
 
 
 with open(path.join(asset_folder, 'token.txt'), 'r') as token_file:
@@ -24,7 +25,7 @@ job_queue  = updater.job_queue
 jobs       = dict()
 
 
-def do_revolve(chat_id, reset_timer):
+def do_revolve(chat_id):
     bot = updater.bot
 
 
@@ -45,11 +46,6 @@ def do_revolve(chat_id, reset_timer):
             # TG will throw BadRequest when the title / description are unchanged.
             bot.send_message(chat_id = chat_id, text = "The flames of revolution shall burn another day.")
             return
-
-
-    if reset_timer:
-        jobs[chat_id][2] = time.time()
-        save_job_queue()
 
 
     bot.send_message(chat_id = chat_id, text = "The king is dead, long live the king!")
@@ -74,23 +70,26 @@ def load_job_queue():
     with open(src, 'r') as handle:
         job_data = json.load(handle)
 
-        for chat_id, (interval, last_trigger) in job_data.items():
+        for chat_id, (interval, first_trigger) in job_data.items():
             chat_id = int(chat_id)
 
-            next_trigger = max(last_trigger + interval - time.time(), 0)
-            print('last = ' + str(last_trigger) + '\nnow  = ' + str(time.time()))
-            print('next = ' + str(next_trigger) + ', dt = ' + str(interval))
+
+            time_since_ft = time.time() - first_trigger
+            num_triggers_elapsed = floor(time_since_ft / interval)
+            next_trigger = first_trigger + ((num_triggers_elapsed + 1) * interval)
+            print(f'time_since_enable={time_since_ft}, num_elapsed={num_triggers_elapsed}, next={next_trigger}')
+
             job = job_queue.run_repeating(
                 lambda ctx: do_revolve(chat_id),
                 interval,
-                next_trigger
+                next_trigger - time.time()
             )
 
             jobs[chat_id] = [job, interval, next_trigger]
 
 
 def on_revolve(update, context):
-    do_revolve(update.effective_chat.id, False)
+    do_revolve(update.effective_chat.id)
 
 
 def on_list_images(update, context):
@@ -139,20 +138,15 @@ def on_auto(update, context):
     if chat_id in jobs: jobs[chat_id][0].schedule_removal()
 
     job = job_queue.run_repeating(
-        lambda ctx: do_revolve(chat_id, True),
+        lambda ctx: do_revolve(chat_id),
         interval,
         delta_start
     )
 
-    reverse_offset = interval
-    while reverse_offset < delta_start: reverse_offset += interval
+    jobs[chat_id] = [job, interval, time.time() + delta_start]
 
-    jobs[chat_id] = [job, interval, time.time() - reverse_offset + delta_start]
 
     send_reply(update, context, "I'll annoy you every " + str(interval) + " seconds.")
-
-    print('store @ ' + str(time.time()) + ' with ds = ' + str(delta_start))
-
     save_job_queue()
 
 
