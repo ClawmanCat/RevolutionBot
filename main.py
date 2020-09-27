@@ -24,7 +24,7 @@ job_queue  = updater.job_queue
 jobs       = dict()
 
 
-def do_revolve(chat_id):
+def do_revolve(chat_id, reset_timer):
     bot = updater.bot
 
 
@@ -46,8 +46,11 @@ def do_revolve(chat_id):
             bot.send_message(chat_id = chat_id, text = "The flames of revolution shall burn another day.")
             return
 
-    jobs[chat_id][2] = time.time()
-    save_job_queue()
+
+    if reset_timer:
+        jobs[chat_id][2] = time.time()
+        save_job_queue()
+
 
     bot.send_message(chat_id = chat_id, text = "The king is dead, long live the king!")
 
@@ -87,7 +90,7 @@ def load_job_queue():
 
 
 def on_revolve(update, context):
-    do_revolve(update.effective_chat.id)
+    do_revolve(update.effective_chat.id, False)
 
 
 def on_list_images(update, context):
@@ -136,7 +139,7 @@ def on_auto(update, context):
     if chat_id in jobs: jobs[chat_id][0].schedule_removal()
 
     job = job_queue.run_repeating(
-        lambda ctx: do_revolve(chat_id),
+        lambda ctx: do_revolve(chat_id, True),
         interval,
         delta_start
     )
