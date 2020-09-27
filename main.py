@@ -39,7 +39,7 @@ def do_revolve(chat_id, target = None):
         for file, (name, desc) in items.get_items().items():
             if name == target: break
 
-        if file is None:
+        if name != target:
             bot.send_message(chat_id = chat_id, text = f'I don\'t know a {target} you fuckwad.')
             return
 
@@ -53,7 +53,7 @@ def do_revolve(chat_id, target = None):
             bot.set_chat_photo(chat_id, InputFile(f, filename = name))
             bot.setChatTitle(chat_id, name)
             bot.setChatDescription(chat_id, desc + '\n\nDiscord: https://discord.gg/jjaFNAN')
-        except error.BadRequest:
+        except error.BadRequest as e:
             # TG will throw BadRequest when the title / description are unchanged.
             bot.send_message(chat_id = chat_id, text = "The flames of revolution shall burn another day.")
             return
@@ -108,7 +108,7 @@ def on_revolve(update, context):
 def on_revolve_to(update, context):
     args = update.message.text.split(' ')[1:]
 
-    if len(args) >= 1: do_revolve(update.effective_chat.id, target = ''.join(args))
+    if len(args) >= 1: do_revolve(update.effective_chat.id, target = ' '.join(args))
     else: send_reply(update, context, "I need a name, you irredeemable idiot.")
 
 
