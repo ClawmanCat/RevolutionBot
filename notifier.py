@@ -1,7 +1,7 @@
 from multiprocessing.connection import Client
 
 
-address = ('localhost', 420)
+address = ('localhost', 1420)
 
 def send_revolve_notification(chat_id, chat_name):
     try:
