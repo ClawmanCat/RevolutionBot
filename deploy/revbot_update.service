@@ -1,0 +1,18 @@
+[Unit]
+Description=RevolutionBot Update Checker
+After=multi-user.target network-online.target
+Requires=multi-user.target
+
+[Service]
+User=bots_su
+Group=bots
+WorkingDirectory=/home/bots/RevolutionBot/
+LimitNOFILE=4096
+ExecStart=/usr/bin/python3 /home/bots/RevolutionBot/deploy/update_from_remote.py
+Restart=always
+RestartSec=600s
+StandardOutput=file:/home/bots/RevolutionBot/updater_stdout.log
+StandardError=file:/home/bots/RevolutionBot/updater_stderr.log
+
+[Install]
+WantedBy=multi-user.target
