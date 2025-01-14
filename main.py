@@ -203,3 +203,5 @@ items.load()
 load_job_queue()
 load_hist()
 updater.start_polling()
+updater.idle()
+
